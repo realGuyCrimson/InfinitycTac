@@ -93,16 +93,29 @@ export function GameBoard({
       return offlineTargetBoard || null;
     }
     
-    // For online games, find the last move by checking the previous player's moves
+    // For online games, find the last move by tracking move history
     const previousMoveSymbol = moveCount % 2 === 0 ? 'O' : 'X';
     
-    // Find the most recently placed symbol of the previous player
-    for (let row = gameGrid.length - 1; row >= 0; row--) {
-      for (let col = gameGrid[row].length - 1; col >= 0; col--) {
-        if (gameGrid[row][col] === previousMoveSymbol) {
-          return UltimateGameLogic.getTargetBoard(row, col, gameGrid, localWinners);
+    // Find the last move made by the previous player
+    let lastMoveRow = -1;
+    let lastMoveCol = -1;
+    let foundMoves = 0;
+    
+    // Count moves to find the most recent one
+    for (let row = 0; row < gameGrid.length; row++) {
+      for (let col = 0; col < gameGrid[row].length; col++) {
+        if (gameGrid[row][col] !== '') {
+          foundMoves++;
+          if (foundMoves === moveCount && gameGrid[row][col] === previousMoveSymbol) {
+            lastMoveRow = row;
+            lastMoveCol = col;
+          }
         }
       }
+    }
+    
+    if (lastMoveRow >= 0 && lastMoveCol >= 0) {
+      return UltimateGameLogic.getTargetBoard(lastMoveRow, lastMoveCol, gameGrid, localWinners);
     }
     
     return null;

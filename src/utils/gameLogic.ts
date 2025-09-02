@@ -163,14 +163,17 @@ export class UltimateGameLogic {
   static checkGlobalWinner(localWinners: (PlayerSymbol | null)[]): { winner: PlayerSymbol | null; winningLine: number[][] | null } {
     // Convert to 3x3 grid of local winners
     const localGrid = Array(3).fill(null).map((_, row) =>
-      Array(3).fill(null).map((_, col) => localWinners[row * 3 + col] || '')
+      Array(3).fill(null).map((_, col) => {
+        const winner = localWinners[row * 3 + col];
+        return winner === null ? '' : winner;
+      })
     );
     
     const result = ClassicGameLogic.checkWin(localGrid, 3);
     
     // Convert winning line back to board indices
     if (result.winningLine) {
-      const boardWinningLine = result.winningLine.map(([row, col]) => [row * 3 + col]);
+      const boardWinningLine = result.winningLine.map(([row, col]) => [row, col]);
       return { winner: result.winner, winningLine: boardWinningLine };
     }
     
