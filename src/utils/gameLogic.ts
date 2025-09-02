@@ -193,6 +193,45 @@ export class UltimateGameLogic {
     return targetBoardIndex;
   }
   
+  // Get target board from current grid state (for online games)
+  static getTargetBoardFromGrid(grid: string[][], localWinners: (PlayerSymbol | null)[]): number | null {
+    const moveCount = grid.flat().filter(cell => cell !== '').length;
+    if (moveCount === 0) return null;
+    
+    // Find the most recent move by looking for the last placed symbol
+    const currentSymbol = moveCount % 2 === 0 ? 'X' : 'O';
+    const previousSymbol = currentSymbol === 'X' ? 'O' : 'X';
+    
+    // Find the last move by the previous player
+    let lastMoveRow = -1;
+    let lastMoveCol = -1;
+    
+    // Scan grid to find the last move (this is a simplified approach)
+    // In a real implementation, you'd track moves in the database
+    for (let row = 8; row >= 0; row--) {
+      for (let col = 8; col >= 0; col--) {
+        if (grid[row][col] === previousSymbol) {
+          // Check if this could be the last move by seeing if removing it reduces the count
+          const tempGrid = grid.map(r => [...r]);
+          tempGrid[row][col] = '';
+          const tempCount = tempGrid.flat().filter(cell => cell !== '').length;
+          if (tempCount === moveCount - 1) {
+            lastMoveRow = row;
+            lastMoveCol = col;
+            break;
+          }
+        }
+      }
+      if (lastMoveRow >= 0) break;
+    }
+    
+    if (lastMoveRow >= 0 && lastMoveCol >= 0) {
+      return this.getTargetBoard(lastMoveRow, lastMoveCol, grid, localWinners);
+    }
+    
+    return null;
+  }
+  
   // Check if a move is valid in ultimate mode
   static isValidMove(grid: string[][], row: number, col: number, targetBoard: number | null): boolean {
     // Basic check: cell must be empty

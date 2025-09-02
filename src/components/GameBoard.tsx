@@ -33,7 +33,19 @@ export function GameBoard({
   const [inputBlocked, setInputBlocked] = useState(false);
   const [clientId, setClientId] = useState<string>('');
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  const [offlineGameState, setOfflineGameState] = useState<any>(null);
 
+  // Update offline game state when room prop changes
+  useEffect(() => {
+    if (isOffline) {
+      setOfflineGameState({
+        grid: room.grid,
+        currentSymbol: offlineCurrentPlayer,
+        targetBoard: offlineTargetBoard,
+        mode: room.mode
+      });
+    }
+  }, [isOffline, room.grid, offlineCurrentPlayer, offlineTargetBoard, room.mode]);
   useEffect(() => {
     if (!isOffline) {
       const storedClientId = localStorage.getItem(`client_id_${room.room_code}`) || '';
@@ -67,10 +79,10 @@ export function GameBoard({
   }, [room.room_code, isOffline, gameService, toast, onLeave]);
 
   // Game state calculations
-  const gameGrid = currentRoom.grid;
+  const gameGrid = isOffline ? (offlineGameState?.grid || room.grid) : currentRoom.grid;
   const mode = currentRoom.mode as GameMode;
   const moveCount = gameGrid.flat().filter(cell => cell !== '').length;
-  const currentSymbol = isOffline ? offlineCurrentPlayer : (moveCount % 2 === 0 ? 'X' : 'O');
+  const currentSymbol = isOffline ? (offlineGameState?.currentSymbol || offlineCurrentPlayer) : (moveCount % 2 === 0 ? 'X' : 'O');
 
   // Classic game state
   const classicWin = mode === 'classic' && currentRoom.win_length 
@@ -85,43 +97,9 @@ export function GameBoard({
   const ultimateDraw = mode === 'ultimate' && !ultimateGlobal.winner && UltimateGameLogic.checkDraw(gameGrid, localWinners);
   
   // Get target board for ultimate mode
-  const getTargetBoard = (): number | null => {
-    if (mode !== 'ultimate' || moveCount === 0) return null;
-    
-    // For offline games, use the passed targetBoard
-    if (isOffline) {
-      return offlineTargetBoard || null;
-    }
-    
-    // For online games, find the last move by tracking move history
-    const previousMoveSymbol = moveCount % 2 === 0 ? 'O' : 'X';
-    
-    // Find the last move made by the previous player
-    let lastMoveRow = -1;
-    let lastMoveCol = -1;
-    let foundMoves = 0;
-    
-    // Count moves to find the most recent one
-    for (let row = 0; row < gameGrid.length; row++) {
-      for (let col = 0; col < gameGrid[row].length; col++) {
-        if (gameGrid[row][col] !== '') {
-          foundMoves++;
-          if (foundMoves === moveCount && gameGrid[row][col] === previousMoveSymbol) {
-            lastMoveRow = row;
-            lastMoveCol = col;
-          }
-        }
-      }
-    }
-    
-    if (lastMoveRow >= 0 && lastMoveCol >= 0) {
-      return UltimateGameLogic.getTargetBoard(lastMoveRow, lastMoveCol, gameGrid, localWinners);
-    }
-    
-    return null;
-  };
-
-  const targetBoard = getTargetBoard();
+  const targetBoard = isOffline 
+    ? (offlineGameState?.targetBoard ?? offlineTargetBoard ?? null)
+    : (mode === 'ultimate' ? UltimateGameLogic.getTargetBoardFromGrid(gameGrid, localWinners) : null);
 
   // Determine game state
   const winner = mode === 'classic' ? classicWin.winner : ultimateGlobal.winner;

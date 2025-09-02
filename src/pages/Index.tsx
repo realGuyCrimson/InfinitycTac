@@ -88,7 +88,7 @@ const Index = () => {
       ...offlineGame,
       grid: newGrid,
       currentSymbol: nextSymbol,
-      winner: isDraw ? 'draw' : winner,
+      winner: winner || (isDraw ? 'draw' : null),
       winningLine,
       isGameOver: winner !== null || isDraw,
       moveCount: newMoveCount,
